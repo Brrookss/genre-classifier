@@ -2,7 +2,7 @@
 Free Music Archive (FMA) dataset to create NumPy arrays of track waveforms
 and genres.
 
-Usage: python3 create.py [-h] tracks_fp metadata_fp outfile
+usage: python3 create.py [-h] tracks_fp metadata_fp outfile
 """
 
 import argparse
@@ -14,23 +14,23 @@ from typing import Dict, Sequence, Tuple
 import librosa
 import numpy as np
 
-CSV_HEADER_ROWS = 3
-TRACK_DURATION_SECONDS = 30
-TRACK_SAMPLING_RATE_HZ = 44100
+from constants import CSV_HEADER_ROWS
+from constants import TRACK_DURATION_SECONDS
+from constants import TRACK_SAMPLING_RATE_HZ
 
 
 def get_arguments() -> argparse.Namespace:
     """Parses command-line arguments.
-    
+
     :return: object associated with command-line arguments
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("tracks_fp",
-                        help="Path to directory of tracks.")
+                        help="path to directory of tracks")
     parser.add_argument("metadata_fp",
-                        help="Path to .csv file of per track metadata.")
+                        help="path to .csv file of per track metadata")
     parser.add_argument("outfile",
-                        help="Path to location dataset is to be saved.")
+                        help="path to location dataset is to be saved")
 
     args = parser.parse_args()
     return args
@@ -50,7 +50,7 @@ def create(
     :param metadata_fp: path to .csv file of per track metadata
     :return: tuple of lists containing input track waveforms and genre labels
     """
-    num_samples = 0  # Represents index
+    num_samples = 0  # For indexing
     expected_num_samples = TRACK_SAMPLING_RATE_HZ * TRACK_DURATION_SECONDS
 
     inputs = []
@@ -75,19 +75,22 @@ def create(
                                        duration=TRACK_DURATION_SECONDS)
 
             if waveform.shape[num_samples] < expected_num_samples:
-                waveform = librosa.util.fix_length(waveform, size=expected_num_samples)
+                waveform = librosa.util.fix_length(waveform,
+                                                   size=expected_num_samples)
 
             track_name = trim_track_name(track)
             genre = genres[track_name]
 
             inputs.append(waveform)
             labels.append(genre)
+
+    assert len(inputs) == len(labels)
     return inputs, labels
 
 
 def get_genres(metadata_fp: str) -> Dict[str, str]:
     """Associates track names with their genre names.
-    
+
     :param metadata_fp: path to .csv file of per track metadata
     :return: dictionary containing track name keys and genre name values
     """
@@ -119,13 +122,13 @@ def get_column(csv_file: csv.reader, column_name: str) -> int:
 
     :param csv_file: reader object of .csv file to search
     :param column_name: name of column to locate
-    :raises: ValueError if unable to locate provided column name
+    :raises ValueError: provided column name was not found
     :return: column number corresponding to provided column name
     """
     found = False
 
     for r, row in enumerate(csv_file):
-        if r >= CSV_HEADER_ROWS:
+        if r == CSV_HEADER_ROWS:
             break
 
         for c, column in enumerate(row):
@@ -134,13 +137,15 @@ def get_column(csv_file: csv.reader, column_name: str) -> int:
                 found = True
 
     if not found:
-        raise ValueError("Unable to locate column in .csv file.")
+        raise ValueError(
+            f"Unable to locate column '{column_name}' in .csv file"
+        )
     return number
 
 
 def trim_track_name(track: str) -> str:
     """Removes leading zeros and extension from track name.
-    
+
     :param track: name of track
     :return: track name with leading zeros and extension removed
     """
@@ -161,8 +166,6 @@ def main():
     args = get_arguments()
 
     inputs, labels = create(args.tracks_fp, args.metadata_fp)
-
-    assert len(inputs) == len(labels)
     np.savez(args.outfile, inputs=inputs, labels=labels)
 
 
