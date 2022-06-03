@@ -144,7 +144,9 @@ def get_column(csv_file: csv.reader, column_name: str) -> int:
 
 
 def trim_track_name(track: str) -> str:
-    """Removes leading zeros and extension from track name.
+    """Removes leading zeros and file extension from track name.
+
+    File extension is expected to be .mp3.
 
     :param track: name of track
     :return: track name with leading zeros and extension removed

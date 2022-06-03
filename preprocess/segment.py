@@ -1,14 +1,11 @@
 """Splits dataset inputs and corresponding labels."""
 
-import sys
 from typing import Tuple
 
 import numpy as np
 
-sys.path.append("..")  # Required for module imports
-
-from dataset.constants import FEATURES  # noqa: E402
-from dataset.constants import SAMPLES  # noqa: E402
+from constants import FEATURES
+from constants import SAMPLES
 
 
 def segment(
