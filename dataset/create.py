@@ -14,8 +14,11 @@ from typing import Dict, Sequence, Tuple
 import librosa
 import numpy as np
 
-from constants import CSV_HEADER_ROWS
+from constants import CSV_HEADER_ROWS_NUM
+from constants import INPUT_NAME
+from constants import LABEL_NAME
 from constants import TRACK_DURATION_SECONDS
+from constants import TRACK_EXTENSION
 from constants import TRACK_SAMPLING_RATE_HZ
 
 
@@ -50,7 +53,7 @@ def create(
     :param metadata_fp: path to .csv file of per track metadata
     :return: tuple of lists containing input track waveforms and genre labels
     """
-    num_samples = 0  # For indexing
+    num_samples = 0  # Index
     expected_num_samples = TRACK_SAMPLING_RATE_HZ * TRACK_DURATION_SECONDS
 
     inputs = []
@@ -78,7 +81,7 @@ def create(
                 waveform = librosa.util.fix_length(waveform,
                                                    size=expected_num_samples)
 
-            track_name = trim_track_name(track)
+            track_name = trim_track_name(track, TRACK_EXTENSION)
             genre = genres[track_name]
 
             inputs.append(waveform)
@@ -99,12 +102,12 @@ def get_genres(metadata_fp: str) -> Dict[str, str]:
     with open(metadata_fp, "r") as file:
         metadata = csv.reader(file)
 
-        id_column = get_column(metadata, "track_id")
+        id_column = get_column(metadata, INPUT_NAME)
         file.seek(0)
-        genre_column = get_column(metadata, "genre_top")
+        genre_column = get_column(metadata, LABEL_NAME)
         file.seek(0)
 
-        for _, row in enumerate(metadata, start=CSV_HEADER_ROWS):
+        for _, row in enumerate(metadata, start=CSV_HEADER_ROWS_NUM):
             id = row[id_column]
             genre = row[genre_column]
 
@@ -128,7 +131,7 @@ def get_column(csv_file: csv.reader, column_name: str) -> int:
     found = False
 
     for r, row in enumerate(csv_file):
-        if r == CSV_HEADER_ROWS:
+        if r == CSV_HEADER_ROWS_NUM:
             break
 
         for c, column in enumerate(row):
@@ -143,15 +146,13 @@ def get_column(csv_file: csv.reader, column_name: str) -> int:
     return number
 
 
-def trim_track_name(track: str) -> str:
+def trim_track_name(track: str, extension: str) -> str:
     """Removes leading zeros and file extension from track name.
 
-    File extension is expected to be .mp3.
-
     :param track: name of track
+    :param extension: file extension to be removed
     :return: track name with leading zeros and extension removed
     """
-    extension = ".mp3"
     root = 0
 
     track = track.lstrip("0")
