@@ -9,9 +9,9 @@ import librosa
 import numpy as np
 import sys
 
-sys.path.append("..")  # Required for module imports
+sys.path.append("..")  # Required for following module imports
 
-from dataset.constants import SAMPLES  # noqa: E402
+from constants import SAMPLES  # noqa: E402
 from dataset.constants import TRACK_SAMPLING_RATE_HZ  # noqa: E402
 from segment import segment  # noqa: E402
 
@@ -67,6 +67,32 @@ def waveform_to_normalized_mel_spectrogram(input: np.ndarray) -> np.ndarray:
     return mel_normalized
 
 
+def convert_audio_to_image_representation(inputs: np.ndarray) -> np.ndarray:
+    """Converts inputs in the form of audio data to image representation.
+
+    Inputs are expected to be representative of audio data in the
+    form: (samples, features, time). In this context, samples indicates each
+    input in the dataset; samples does not relate to the term as it is used in
+    the context of audio engineering.
+
+    Conversion swaps features and time dimensions and adds an outermost
+    dimension, resulting in a representation analogous to an image:
+    (samples, width, height, channels). The channels dimension only contains
+    1 value, resulting in the image being grayscale specifically.
+
+    :param inputs: array of dataset inputs representative of audio
+    :return: array of inputs representative of images
+    """
+    time = 1
+    audio_features = 2
+    channels = 3
+
+    samples_width_height = np.swapaxes(inputs, time, audio_features)
+    samples_width_height_channels = np.expand_dims(samples_width_height,
+                                                   channels)
+    return samples_width_height_channels
+
+
 def main():
     """Applies feature engineering to dataset inputs."""
     args = get_arguments()
@@ -79,6 +105,7 @@ def main():
         inputs, labels = segment(inputs, labels, args.segment)
 
     inputs = transform(inputs)
+    inputs = convert_audio_to_image_representation(inputs)
 
     if args.outfile:
         np.savez(args.outfile, inputs=inputs, labels=labels)
