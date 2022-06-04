@@ -67,7 +67,7 @@ def waveform_to_normalized_mel_spectrogram(input: np.ndarray) -> np.ndarray:
     return mel_normalized
 
 
-def convert_audio_to_image_representation(inputs: np.ndarray) -> np.ndarray:
+def audio_to_image_representation(inputs: np.ndarray) -> np.ndarray:
     """Converts inputs in the form of audio data to image representation.
 
     Inputs are expected to be representative of audio data in the
@@ -105,12 +105,8 @@ def main():
         inputs, labels = segment(inputs, labels, args.segment)
 
     inputs = transform(inputs)
-    inputs = convert_audio_to_image_representation(inputs)
-
-    if args.outfile:
-        np.savez(args.outfile, inputs=inputs, labels=labels)
-    else:
-        np.savez(args.dataset_fp, inputs=inputs, labels=labels)
+    inputs = audio_to_image_representation(inputs)
+    np.savez(args.outfile or args.dataset_fp, inputs=inputs, labels=labels)
 
 
 if __name__ == "__main__":

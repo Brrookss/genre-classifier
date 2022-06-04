@@ -59,7 +59,7 @@ def create(
     inputs = []
     labels = []
 
-    genres = get_genres(metadata_fp)
+    genres = get_labels(metadata_fp)
     tracks_directory = listdir(tracks_fp)
 
     for file in tracks_directory:
@@ -91,30 +91,30 @@ def create(
     return inputs, labels
 
 
-def get_genres(metadata_fp: str) -> Dict[str, str]:
-    """Associates track names with their genre names.
+def get_labels(metadata_fp: str) -> Dict[str, str]:
+    """Associates input names with label names.
 
-    :param metadata_fp: path to .csv file of per track metadata
-    :return: dictionary containing track name keys and genre name values
+    :param metadata_fp: path to .csv file of per input metadata
+    :return: dictionary containing input name keys and label name values
     """
-    genres = {}
+    labels = {}
 
     with open(metadata_fp, "r") as file:
         metadata = csv.reader(file)
 
-        id_column = get_column(metadata, INPUT_NAME)
+        input_column = get_column(metadata, INPUT_NAME)
         file.seek(0)
-        genre_column = get_column(metadata, LABEL_NAME)
+        label_column = get_column(metadata, LABEL_NAME)
         file.seek(0)
 
         for _, row in enumerate(metadata, start=CSV_HEADER_ROWS_NUM):
-            id = row[id_column]
-            genre = row[genre_column]
+            input = row[input_column]
+            label = row[label_column]
 
-            if not id or not genre:
+            if not input or not label:
                 continue
-            genres[id] = genre
-    return genres
+            labels[input] = label
+    return labels
 
 
 def get_column(csv_file: csv.reader, column_name: str) -> int:

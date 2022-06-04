@@ -5,7 +5,7 @@ from typing import Any, Sequence
 import numpy as np
 
 
-def get_mapping(labels: Sequence[int]) -> np.ndarray:
+def get_mapping(labels: Sequence[Any]) -> np.ndarray:
     """Creates an index-based mapping of the dataset labels.
 
     Unique values are extracted from the labels. To ensure consistency in the
@@ -26,10 +26,7 @@ def is_sorted(array: Sequence[Any]) -> bool:
     :param array: array to be checked
     :return: truth value of sortedness
     """
-    i = 0
-
-    while i + 1 < len(array):
+    for i in range(len(array) - 1):
         if array[i] > array[i + 1]:
             return False
-        i += 1
     return True
