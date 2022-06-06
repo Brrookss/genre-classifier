@@ -1,16 +1,18 @@
-"""Loads tracks and corresponding per track metadata sourced by the
-Free Music Archive (FMA) dataset to create NumPy arrays of track waveforms
-and genres.
+"""Loads tracks and corresponding per track metadata sourced by the Free Music
+Archive (FMA) dataset to create NumPy arrays of track waveforms and genres.
 
-usage: python3 create.py [-h] tracks_fp metadata_fp outfile
+Example:
+    python3 create.py [-h] tracks_filepath metadata_filepath outfile
 """
 
 import argparse
 import csv
-from os import listdir
-from os import path
+import os
+from pathlib import Path
+import sys
 from typing import Dict, Sequence, Tuple
 
+import audioread
 import librosa
 import numpy as np
 
@@ -18,7 +20,7 @@ from constants import CSV_HEADER_ROWS_NUM
 from constants import INPUT_NAME
 from constants import LABEL_NAME
 from constants import TRACK_DURATION_SECONDS
-from constants import TRACK_EXTENSION
+from constants import TRACK_EXTENSIONS
 from constants import TRACK_SAMPLING_RATE_HZ
 
 
@@ -28,9 +30,9 @@ def get_arguments() -> argparse.Namespace:
     :return: object associated with command-line arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("tracks_fp",
+    parser.add_argument("tracks_filepath",
                         help="path to directory of tracks")
-    parser.add_argument("metadata_fp",
+    parser.add_argument("metadata_filepath",
                         help="path to .csv file of per track metadata")
     parser.add_argument("outfile",
                         help="path to location dataset is to be saved")
@@ -39,69 +41,18 @@ def get_arguments() -> argparse.Namespace:
     return args
 
 
-def create(
-    tracks_fp: str,
-    metadata_fp: str
-) -> Tuple[Sequence[int], Sequence[str]]:
-    """Creates lists of track waveforms and corresponding genres.
-
-    Structure of files pointed to by tracks_fp and metadata_fp are expected
-    to match the structure of the MP3-encoded audio data and per track metadata
-    files sourced by the Free Music Archive (FMA) dataset, respectively.
-
-    :param tracks_fp: path to directory of tracks
-    :param metadata_fp: path to .csv file of per track metadata
-    :return: tuple of lists containing input track waveforms and genre labels
-    """
-    num_samples = 0  # Index
-    expected_num_samples = TRACK_SAMPLING_RATE_HZ * TRACK_DURATION_SECONDS
-
-    inputs = []
-    labels = []
-
-    genres = get_labels(metadata_fp)
-    tracks_directory = listdir(tracks_fp)
-
-    for file in tracks_directory:
-        subdirectory_fp = path.join(tracks_fp, file)
-
-        if not path.isdir(subdirectory_fp):
-            continue
-
-        track_files = listdir(subdirectory_fp)
-
-        for track in track_files:
-            track_fp = path.join(subdirectory_fp, track)
-
-            waveform, _ = librosa.load(track_fp,
-                                       sr=TRACK_SAMPLING_RATE_HZ,
-                                       duration=TRACK_DURATION_SECONDS)
-
-            if waveform.shape[num_samples] < expected_num_samples:
-                waveform = librosa.util.fix_length(waveform,
-                                                   size=expected_num_samples)
-
-            track_name = trim_track_name(track, TRACK_EXTENSION)
-            genre = genres[track_name]
-
-            inputs.append(waveform)
-            labels.append(genre)
-
-    assert len(inputs) == len(labels)
-    return inputs, labels
-
-
-def get_labels(metadata_fp: str) -> Dict[str, str]:
+def get_labels(metadata_filepath: str) -> Dict[str, str]:
     """Associates input names with label names.
 
-    :param metadata_fp: path to .csv file of per input metadata
+    :param metadata_filepath: path to .csv file of per input metadata
     :return: dictionary containing input name keys and label name values
     """
     labels = {}
 
-    with open(metadata_fp, "r") as file:
+    with open(metadata_filepath, "r") as file:
         metadata = csv.reader(file)
 
+        file.seek(0)
         input_column = get_column(metadata, INPUT_NAME)
         file.seek(0)
         label_column = get_column(metadata, LABEL_NAME)
@@ -118,7 +69,7 @@ def get_labels(metadata_fp: str) -> Dict[str, str]:
 
 
 def get_column(csv_file: csv.reader, column_name: str) -> int:
-    """Gets the column number of the provided column name.
+    """Gets column number of the matching column name.
 
     Function modifies position of file pointer; seek() must be used accordingly
     to reset position.
@@ -126,49 +77,113 @@ def get_column(csv_file: csv.reader, column_name: str) -> int:
     :param csv_file: reader object of .csv file to search
     :param column_name: name of column to locate
     :raises ValueError: provided column name was not found
-    :return: column number corresponding to provided column name
+    :return: column number corresponding to matching column name
     """
-    found = False
-
-    for r, row in enumerate(csv_file):
-        if r == CSV_HEADER_ROWS_NUM:
+    for row_number, row in enumerate(csv_file):
+        if row_number == CSV_HEADER_ROWS_NUM:
             break
 
-        for c, column in enumerate(row):
+        for column_number, column in enumerate(row):
             if column == column_name:
-                number = c
-                found = True
+                return column_number
 
-    if not found:
-        raise ValueError(
-            f"Unable to locate column '{column_name}' in .csv file"
-        )
-    return number
+    raise ValueError(f"Unable to locate column '{column_name}' in .csv file")
 
 
-def trim_track_name(track: str, extension: str) -> str:
-    """Removes leading zeros and file extension from track name.
+def get_track_paths(directory: str) -> list:
+    """Searches directory for files containing audio format extensions.
 
-    :param track: name of track
-    :param extension: file extension to be removed
-    :return: track name with leading zeros and extension removed
+    Audio format extensions to be searched for are defined by TRACK_EXTENSIONS.
+
+    :param directory: directory to be searched
+    :return: list of paths to audio files
+    """
+    suffix = 1
+    paths = []
+
+    for directory_path, _, files in os.walk(directory):
+        for file in files:
+            if "." in file:
+                extension = file.split(".")[suffix]
+                if extension in TRACK_EXTENSIONS:
+                    file_path = os.path.join(directory_path, file)
+                    paths.append(file_path)
+    return paths
+
+
+def create(
+    track_paths: Sequence[str],
+    genres: Dict[str, str]
+) -> Tuple[Sequence[Sequence[int]], Sequence[str]]:
+    """Creates lists of track waveforms and corresponding genres.
+
+    :param track_paths: sequence of track file paths
+    :param genres: dictionary of track name keys and genre labels
+    :return: tuple of lists containing input track waveforms and genre labels
+    """
+    num_samples = 0  # Represents index, not actual number of audio features
+
+    # Represents actual number of audio features
+    expected_num_samples = TRACK_SAMPLING_RATE_HZ * TRACK_DURATION_SECONDS
+
+    inputs = []
+    labels = []
+
+    for path in track_paths:
+        try:
+            waveform, _ = librosa.load(path,
+                                       sr=TRACK_SAMPLING_RATE_HZ,
+                                       duration=TRACK_DURATION_SECONDS)
+        except audioread.exceptions.NoBackendError:
+            print(f"Failed to load '{path}'", file=sys.stderr)
+        else:
+            if waveform.shape[num_samples] < expected_num_samples:
+                # Zero padding
+                waveform = librosa.util.fix_length(waveform,
+                                                   size=expected_num_samples)
+            track = trim_track_name(path)
+            genre = genres[track]
+
+            inputs.append(waveform)
+            labels.append(genre)
+    return inputs, labels
+
+
+def trim_track_name(path: str) -> str:
+    """Removes prepended file path, leading zeros, and file extension.
+
+    Example:
+        '/foo/bar/baz/001230.mp3' returns '1230'
+
+    :param path: file path to track
+    :return:
+        track name with prepended file path, leading zeros, and extension
+        removed
     """
     root = 0
 
+    track = Path(path).name  # Excludes parent directories
     track = track.lstrip("0")
-    if track.endswith(extension):
+    if "." in track:
         track = track.split(".")[root]
     return track
 
 
 def main():
-    """Loads tracks and per track metadata sourced by the
-    Free Music Archive (FMA) dataset to create NumPy arrays
-    of track waveforms and genres.
+    """Loads tracks and per track metadata sourced by the Free Music Archive
+    (FMA) dataset to create NumPy arrays of track waveforms and genres.
+
+    Structure of files pointed to by tracks_filepath and metadata_filepath
+    are expected to match the structure of the audio data and per track
+    metadata files sourced by the Free Music Archive (FMA) dataset.
     """
     args = get_arguments()
 
-    inputs, labels = create(args.tracks_fp, args.metadata_fp)
+    track_paths = get_track_paths(args.tracks_filepath)
+    genres = get_labels(args.metadata_filepath)
+
+    inputs, labels = create(track_paths, genres)
+    assert len(inputs) == len(labels)
     np.savez(args.outfile, inputs=inputs, labels=labels)
 
 
