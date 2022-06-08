@@ -28,7 +28,7 @@ from mapping import get_mapping
 from preprocess.encoding import integer_encode
 from preprocess.feature_engineering import audio_to_image_representation
 from preprocess.feature_engineering import waveform_to_normalized_mel_spectrogram  # noqa: E501
-from preprocess.segment import segment
+from preprocess.segmenting import segment
 
 
 def get_arguments() -> argparse.Namespace:

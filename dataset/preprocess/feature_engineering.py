@@ -18,11 +18,11 @@ def audio_to_image_representation(input: np.ndarray) -> np.ndarray:
     :param input: input representative of audio
     :return: input representative of an image
     """
-    time = 0
-    audio_features = 1
+    audio_features = 0
+    time = 1
     channels = 2
 
-    width_height = np.swapaxes(input, time, audio_features)
+    width_height = np.swapaxes(input, audio_features, time)
     width_height_channels = np.expand_dims(width_height, channels)
     return width_height_channels
 
