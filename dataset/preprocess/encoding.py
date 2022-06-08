@@ -6,7 +6,8 @@ import numpy as np
 
 
 def integer_encode(
-    array: Sequence[Any], mapping_dictionary: Dict[Any, int]
+    array: Sequence[Any],
+    mapping_dictionary: Dict[Any, int]
 ) -> np.ndarray:
     """Converts sequence elements to an array of corresponding integers.
 

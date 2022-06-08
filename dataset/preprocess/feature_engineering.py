@@ -28,7 +28,8 @@ def audio_to_image_representation(input: np.ndarray) -> np.ndarray:
 
 
 def waveform_to_normalized_mel_spectrogram(
-    input: np.ndarray, sampling_rate: int
+    input: np.ndarray,
+    sampling_rate: int
 ) -> np.ndarray:
     """Converts waveform to a normalized mel spectrogram representation.
 

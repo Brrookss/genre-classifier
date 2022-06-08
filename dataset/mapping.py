@@ -20,7 +20,6 @@ def get_mapping(labels: Sequence[Any]) -> Tuple[np.ndarray, Dict[Any, int]]:
     """
     mapping_array = np.unique(labels)
     assert is_sorted(mapping_array)
-
     mapping_dictionary = to_index_dictionary(mapping_array)
     return mapping_array, mapping_dictionary
 

@@ -28,6 +28,7 @@ from mapping import get_mapping
 from preprocess.encoding import integer_encode
 from preprocess.feature_engineering import audio_to_image_representation
 from preprocess.feature_engineering import waveform_to_normalized_mel_spectrogram  # noqa: E501
+from preprocess.segment import segment
 
 
 def get_arguments() -> argparse.Namespace:
@@ -58,27 +59,19 @@ def get_column(csv_file: csv.reader, column_name: str) -> int:
     :raises ValueError: provided column name was not found
     :return: column number of matching column name
     """
-    number = -1
-    found = False
-
     for row_number, row in enumerate(csv_file):
         if row_number == constants.CSV_HEADER_ROWS_NUM:
             break
 
         for column_number, column in enumerate(row):
             if column == column_name:
-                number = column_number
-                found = True
-
-    if not found:
-        raise ValueError(
-            f"Unable to locate column '{column_name}' in .csv file"
-        )
-    return number
+                return column_number
+    raise ValueError(f"Unable to locate column '{column_name}' in .csv file")
 
 
 def get_genres(
-    track_paths: Sequence[str], metadata_filepath: str
+    track_paths: Sequence[str],
+    metadata_filepath: str
 ) -> Sequence[str]:
     """Creates a sequence of genres corresponding to the tracks.
 
@@ -145,28 +138,7 @@ def get_track_paths(directory: str) -> list:
     return paths
 
 
-def load_track(track_path: str) -> np.ndarray:
-    """Loads track waveform.
-
-    Failure to load track results in None being returned.
-
-    :param track_path: path to audio file
-    :return: array representing track waveform or None
-    """
-    try:
-        waveform, _ = librosa.load(track_path,
-                                   sr=constants.TRACK_SAMPLING_RATE_HZ,
-                                   duration=constants.TRACK_DURATION_SECONDS)
-    except audioread.exceptions.NoBackendError:
-        print(f"Error loading '{track_path}'", file=sys.stderr)
-        waveform = None
-    else:
-        print(f"Loaded '{track_path}'")
-    finally:
-        return waveform
-
-
-def preprocess(track_path: str) -> Tuple[np.ndarray, str]:
+def load_and_preprocess(track_path: str) -> Tuple[np.ndarray, str]:
     """Loads track before applying feature engineering.
 
     Provided file path is returned unmodified to maintain a reference to the
@@ -177,18 +149,58 @@ def preprocess(track_path: str) -> Tuple[np.ndarray, str]:
     :return: tuple of (preprocessed data, track file path)
     """
     waveform = load_track(track_path)
+    preprocessed = None
 
     if waveform is not None:
-        waveform = verify_length(waveform)
+        waveform = verify_and_fix_length(waveform)
         mel_spectrogram = waveform_to_normalized_mel_spectrogram(
             waveform, constants.TRACK_SAMPLING_RATE_HZ
         )
-        grayscale = audio_to_image_representation(mel_spectrogram)
-        preprocessed = grayscale
-    else:
-        preprocessed = None
+        image = audio_to_image_representation(mel_spectrogram)
+        preprocessed = image
 
     return preprocessed, track_path
+
+
+def load_track(track_path: str) -> np.ndarray:
+    """Loads track waveform.
+
+    Failure to load track results in None being returned.
+
+    :param track_path: path to audio file
+    :return: array representing track waveform or None
+    """
+    waveform = None
+
+    try:
+        waveform, _ = librosa.load(track_path,
+                                   sr=constants.TRACK_SAMPLING_RATE_HZ,
+                                   duration=constants.TRACK_DURATION_SECONDS)
+    except audioread.exceptions.NoBackendError:
+        print(f"Error loading '{track_path}'", file=sys.stderr)
+    else:
+        print(f"Loaded '{track_path}'")
+    return waveform
+
+
+def segment_dataset(
+    dataset: Tuple[Sequence[Any], Sequence[Any]],
+    num_segments: int
+) -> Tuple[Sequence[Any], Sequence[Any]]:
+    """Iterates through paired data and splits them.
+
+    :param dataset: tuple of (sequence of inputs, sequence of labels)
+    :param num_segments: expected number of segments to split data into
+    :return: tuple of (sequence of input segments, sequence of labels)
+    """
+    inputs_segmented = []
+    labels_segmented = []
+
+    for input, label in dataset:
+        input_segments, label_segments = segment(input, num_segments, label)
+        inputs_segmented.extend(input_segments)
+        labels_segmented.extend(label_segments)
+    return inputs_segmented, labels_segmented
 
 
 def trim_track_name(path: str) -> str:
@@ -226,12 +238,11 @@ def unpack_and_clean(
         if first is not None and second is not None:
             first_items.append(first)
             second_items.append(second)
-
     return first_items, second_items
 
 
-def verify_length(waveform: Sequence[int]) -> np.ndarray:
-    """Checks signal length and adjusts to the expected length.
+def verify_and_fix_length(waveform: np.ndarray) -> np.ndarray:
+    """Checks signal length and if necessary, adjusts to the expected length.
 
     Expected length is defined as the product of TRACK_SAMPLING_RATE_HZ and
         TRACK_DURATION_SECONDS.
@@ -239,8 +250,8 @@ def verify_length(waveform: Sequence[int]) -> np.ndarray:
     Tracks containing an incompatible number of samples are zero padded or
         truncated accordingly.
 
-    :param waveform: signal to be checked
-    :return: signal of the expected length
+    :param waveform: array of signal to be checked
+    :return: signal matching the expected length
     """
     samples = 0
     expected_num_samples = (constants.TRACK_SAMPLING_RATE_HZ
@@ -259,16 +270,20 @@ def main():
     track_paths = get_track_paths(args.tracks_filepath)
 
     with multiprocessing.Pool() as pool:
-        track_data = pool.map(preprocess, track_paths)
+        track_data = pool.map(load_and_preprocess, track_paths)
 
     tracks_preprocessed, track_paths = unpack_and_clean(track_data)
     genres = get_genres(track_paths, args.metadata_filepath)
 
     _, mapping_dictionary = get_mapping(genres)
-    labels_encoded = integer_encode(genres, mapping_dictionary)
+    genres_encoded = integer_encode(genres, mapping_dictionary)
 
-    assert len(tracks_preprocessed) == len(labels_encoded)
-    np.savez(args.outfile, inputs=tracks_preprocessed, labels=labels_encoded)
+    tracks_segmented, genres_segmented = segment_dataset(
+        zip(tracks_preprocessed, genres_encoded), constants.SEGMENTS_NUM
+    )
+    del tracks_preprocessed
+    assert len(tracks_segmented) == len(genres_segmented)
+    np.savez(args.outfile, inputs=tracks_segmented, labels=genres_segmented)
 
 
 if __name__ == "__main__":
