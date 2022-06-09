@@ -8,7 +8,7 @@ Structure of files pointed to by tracks_filepath and metadata_filepath
     metadata files sourced by the Free Music Archive (FMA) dataset.
 
 Example:
-    python3 configure.py [-h] tracks_filepath metadata_filepath outfile
+    python configure.py [-h] tracks_filepath metadata_filepath outfile
 """
 
 import argparse
@@ -43,7 +43,6 @@ def get_arguments() -> argparse.Namespace:
                         help="path to .csv file of per track metadata")
     parser.add_argument("outfile",
                         help="path to location dataset is to be saved")
-
     args = parser.parse_args()
     return args
 
@@ -229,7 +228,7 @@ def unpack_and_clean(
     """Decouples sequence of paired data; incomplete pairs are omitted.
 
     :param pairs: sequence of tuples
-    :return: tuple of (first items sequence, second items sequence)
+    :return: tuple of (sequence of first items, sequence of second items)
     """
     first_items = []
     second_items = []
