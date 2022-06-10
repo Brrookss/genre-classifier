@@ -8,7 +8,7 @@ Structure of files pointed to by tracks_filepath and metadata_filepath
     metadata files sourced by the Free Music Archive (FMA) dataset.
 
 Example:
-    python3 configure.py [-h] tracks_filepath metadata_filepath outfile
+    python configure.py [-h] tracks_filepath metadata_filepath outfile
 """
 
 import argparse
@@ -28,7 +28,7 @@ from mapping import get_mapping
 from preprocess.encoding import integer_encode
 from preprocess.feature_engineering import audio_to_image_representation
 from preprocess.feature_engineering import waveform_to_normalized_mel_spectrogram  # noqa: E501
-from preprocess.segment import segment
+from preprocess.segmenting import segment
 
 
 def get_arguments() -> argparse.Namespace:
@@ -43,7 +43,6 @@ def get_arguments() -> argparse.Namespace:
                         help="path to .csv file of per track metadata")
     parser.add_argument("outfile",
                         help="path to location dataset is to be saved")
-
     args = parser.parse_args()
     return args
 
@@ -132,7 +131,7 @@ def get_track_paths(directory: str) -> list:
         for file in files:
             if "." in file:
                 extension = file.split(".")[suffix]
-                if extension in constants.TRACK_EXTENSIONS:
+                if extension in constants.TRACK_EXTENSIONS_SUPPORTED:
                     file_path = os.path.join(directory_path, file)
                     paths.append(file_path)
     return paths
@@ -149,7 +148,6 @@ def load_and_preprocess(track_path: str) -> Tuple[np.ndarray, str]:
     :return: tuple of (preprocessed data, track file path)
     """
     waveform = load_track(track_path)
-    preprocessed = None
 
     if waveform is not None:
         waveform = verify_and_fix_length(waveform)
@@ -158,6 +156,8 @@ def load_and_preprocess(track_path: str) -> Tuple[np.ndarray, str]:
         )
         image = audio_to_image_representation(mel_spectrogram)
         preprocessed = image
+    else:
+        preprocessed = None
 
     return preprocessed, track_path
 
@@ -170,17 +170,16 @@ def load_track(track_path: str) -> np.ndarray:
     :param track_path: path to audio file
     :return: array representing track waveform or None
     """
-    waveform = None
-
     try:
         waveform, _ = librosa.load(track_path,
                                    sr=constants.TRACK_SAMPLING_RATE_HZ,
                                    duration=constants.TRACK_DURATION_SECONDS)
     except audioread.exceptions.NoBackendError:
-        print(f"Error loading '{track_path}'", file=sys.stderr)
-    else:
-        print(f"Loaded '{track_path}'")
-    return waveform
+        print(f"NoBackendError: unable to load file '{track_path}'",
+              file=sys.stderr)
+        waveform = None
+    finally:
+        return waveform
 
 
 def segment_dataset(
@@ -229,7 +228,7 @@ def unpack_and_clean(
     """Decouples sequence of paired data; incomplete pairs are omitted.
 
     :param pairs: sequence of tuples
-    :return: tuple of (first items sequence, second items sequence)
+    :return: tuple of (sequence of first items, sequence of second items)
     """
     first_items = []
     second_items = []
@@ -282,7 +281,6 @@ def main():
         zip(tracks_preprocessed, genres_encoded), constants.SEGMENTS_NUM
     )
     del tracks_preprocessed
-    assert len(tracks_segmented) == len(genres_segmented)
     np.savez(args.outfile, inputs=tracks_segmented, labels=genres_segmented)
 
 
