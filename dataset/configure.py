@@ -131,7 +131,7 @@ def get_track_paths(directory: str) -> list:
         for file in files:
             if "." in file:
                 extension = file.split(".")[suffix]
-                if extension in constants.TRACK_EXTENSIONS:
+                if extension in constants.TRACK_EXTENSIONS_SUPPORTED:
                     file_path = os.path.join(directory_path, file)
                     paths.append(file_path)
     return paths
@@ -148,7 +148,6 @@ def load_and_preprocess(track_path: str) -> Tuple[np.ndarray, str]:
     :return: tuple of (preprocessed data, track file path)
     """
     waveform = load_track(track_path)
-    preprocessed = None
 
     if waveform is not None:
         waveform = verify_and_fix_length(waveform)
@@ -157,6 +156,8 @@ def load_and_preprocess(track_path: str) -> Tuple[np.ndarray, str]:
         )
         image = audio_to_image_representation(mel_spectrogram)
         preprocessed = image
+    else:
+        preprocessed = None
 
     return preprocessed, track_path
 
@@ -169,17 +170,16 @@ def load_track(track_path: str) -> np.ndarray:
     :param track_path: path to audio file
     :return: array representing track waveform or None
     """
-    waveform = None
-
     try:
         waveform, _ = librosa.load(track_path,
                                    sr=constants.TRACK_SAMPLING_RATE_HZ,
                                    duration=constants.TRACK_DURATION_SECONDS)
     except audioread.exceptions.NoBackendError:
-        print(f"Error loading '{track_path}'", file=sys.stderr)
-    else:
-        print(f"Loaded '{track_path}'")
-    return waveform
+        print(f"NoBackendError: unable to load file '{track_path}'",
+              file=sys.stderr)
+        waveform = None
+    finally:
+        return waveform
 
 
 def segment_dataset(
@@ -281,7 +281,6 @@ def main():
         zip(tracks_preprocessed, genres_encoded), constants.SEGMENTS_NUM
     )
     del tracks_preprocessed
-    assert len(tracks_segmented) == len(genres_segmented)
     np.savez(args.outfile, inputs=tracks_segmented, labels=genres_segmented)
 
 
