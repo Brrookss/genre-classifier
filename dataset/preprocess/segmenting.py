@@ -1,4 +1,4 @@
-"""Contains functionality for splitting inputs and labels."""
+"""Contains functionality for segmenting inputs and labels."""
 
 from typing import Any, Sequence, Tuple
 
@@ -43,5 +43,4 @@ def segment(
 
         remainder -= segment_size
         offset += segment_size
-
     return input_segments, label_segments
