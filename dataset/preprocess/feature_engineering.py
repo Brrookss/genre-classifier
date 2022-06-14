@@ -1,4 +1,4 @@
-"""Contains functionality for input preprocessing."""
+"""Contains functionality for input feature engineering."""
 
 import librosa
 import numpy as np
