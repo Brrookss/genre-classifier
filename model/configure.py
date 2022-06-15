@@ -74,6 +74,7 @@ def build(
     # Fully connected block
     model.add(tf.keras.layers.Flatten())
     model.add(tf.keras.layers.Dense(32))
+    model.add(tf.keras.layers.Dropout(0.3))
     model.add(tf.keras.layers.Dense(num_categories))
     return model
 
