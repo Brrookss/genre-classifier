@@ -112,7 +112,7 @@ def get_metadata_mapping(metadata_filepath: str) -> Dict[str, str]:
     return labels
 
 
-def get_track_filepaths(directory: str) -> list:
+def get_track_filepaths(directory: str) -> Sequence[str]:
     """Searches directory for files containing audio format extensions.
 
     Allowed audio format extensions are defined by TRACK_EXTENSIONS.
