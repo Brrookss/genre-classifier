@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 
 import constants
+import metrics
 
 
 def get_arguments() -> argparse.Namespace:
@@ -49,13 +50,21 @@ def main():
     del inputs
 
     model = tf.keras.models.load_model(args.model_filepath)
-    model.fit(train_inputs, train_labels,
-              batch_size=constants.BATCH_SIZE, epochs=constants.EPOCHS,
-              validation_data=(validate_inputs, validate_labels))
+    history = model.fit(train_inputs, train_labels,
+                        batch_size=constants.BATCH_SIZE,
+                        epochs=constants.EPOCHS,
+                        validation_data=(validate_inputs, validate_labels))
     del train_inputs
     del validate_inputs
 
-    model.evaluate(test_inputs, test_labels, batch_size=constants.BATCH_SIZE)
+    metrics.display_accuracy(history)
+    metrics.display_loss(history)
+
+    predictions = model.predict(test_inputs, batch_size=constants.BATCH_SIZE)
+    matrix = metrics.get_confusion_matrix_from_one_hot(predictions,
+                                                       test_labels)
+    metrics.display_confusion(matrix)
+
     model.save(args.export or args.model_filepath)
 
 
