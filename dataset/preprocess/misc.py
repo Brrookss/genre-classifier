@@ -20,9 +20,9 @@ def verify_and_fix_length(waveform: Sequence[int]) -> np.ndarray:
     :param waveform: audio data corresponding to a waveform
     :return: audio data matching the expected length
     """
-    expected_num_samples = (constants.TRACK_SAMPLING_RATE_HZ
-                            * constants.TRACK_DURATION_SECONDS)
+    expected_length = (constants.TRACK_SAMPLING_RATE_HZ
+                       * constants.TRACK_DURATION_SECONDS)
 
-    if len(waveform) != expected_num_samples:
-        waveform = librosa.util.fix_length(waveform, size=expected_num_samples)
+    if len(waveform) != expected_length:
+        waveform = librosa.util.fix_length(waveform, size=expected_length)
     return waveform

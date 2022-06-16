@@ -5,7 +5,7 @@ from typing import Any, Dict, Sequence
 import numpy as np
 
 
-def integer_encode(labels: Sequence[Any]) -> Dict[Any, int]:
+def integer_encode_mapping(labels: Sequence[Any]) -> Dict[Any, int]:
     """Converts sequence of labels to a dictionary of index-based values.
 
     To ensure consistent encoding, labels are sorted before the creation of the
@@ -35,3 +35,17 @@ def is_sorted(seq: Sequence[Any]) -> bool:
         if seq[i] > seq[i + 1]:
             return False
     return True
+
+
+def one_hot_encode(integer_label: int, num_categories: int) -> np.ndarray:
+    """Converts integer label to a one-hot encoded array.
+
+    Datatype of the encoded array is int32.
+
+    :param integer_label: categorical label in the range [0, num_categories)
+    :param num_categories: number of categorical targets
+    :return: one-hot encoded array
+    """
+    encoded = np.zeros(num_categories, dtype=np.int32)
+    encoded[integer_label] = 1
+    return encoded

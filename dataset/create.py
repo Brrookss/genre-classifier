@@ -24,11 +24,12 @@ import librosa
 import numpy as np
 
 import constants
-from preprocess.encoding import integer_encode
-from preprocess.feature_engineering import audio_to_image_representation
-from preprocess.feature_engineering import waveform_to_normalized_mel_spectrogram  # noqa: E501
+from preprocess.encode import integer_encode_mapping
+from preprocess.encode import one_hot_encode
+from preprocess.features import audio_to_image_representation
+from preprocess.features import waveform_to_normalized_mel_spectrogram
 from preprocess.misc import verify_and_fix_length
-from preprocess.segmenting import segment
+from preprocess.segment import segment
 
 
 def apply_feature_engineering(waveform: Sequence[int]) -> np.ndarray:
@@ -111,7 +112,7 @@ def get_metadata_mapping(metadata_filepath: str) -> Dict[str, str]:
     return labels
 
 
-def get_track_filepaths(directory: str) -> list:
+def get_track_filepaths(directory: str) -> Sequence[str]:
     """Searches directory for files containing audio format extensions.
 
     Allowed audio format extensions are defined by TRACK_EXTENSIONS.
@@ -233,25 +234,25 @@ def main():
 
     unique_labels = get_unique_dataset_labels(filepaths,
                                               input_to_label_mapping)
-    encoded_labels = integer_encode(unique_labels)
+    label_to_integer_mapping = integer_encode_mapping(unique_labels)
 
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool() as p:
         dataset_inputs = []
         dataset_labels = []
 
-        for preprocessed_track, filepath in pool.imap(
-            load_and_preprocess_track, filepaths, chunksize=16
-        ):
+        for preprocessed_track, filepath in p.imap(load_and_preprocess_track,
+                                                   filepaths, chunksize=64):
             if preprocessed_track is None:
                 continue
 
             name = trim_track_name(filepath)
             genre = input_to_label_mapping[name]
-            genre_encoded = encoded_labels[genre]
+            genre_integer = label_to_integer_mapping[genre]
+            genre_one_hot = one_hot_encode(genre_integer, len(unique_labels))
 
-            segmented_track, segmented_genre = segment(
-                preprocessed_track, constants.SEGMENTS_NUM, genre_encoded
-            )
+            segmented_track, segmented_genre = segment(preprocessed_track,
+                                                       constants.SEGMENTS_NUM,
+                                                       genre_one_hot)
             del preprocessed_track
 
             dataset_inputs.extend(segmented_track)
