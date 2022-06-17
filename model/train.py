@@ -57,14 +57,14 @@ def main():
     del train_inputs
     del validate_inputs
 
-    metrics.display_accuracy(history)
-    metrics.display_loss(history)
-
     predictions = model.predict(test_inputs, batch_size=constants.BATCH_SIZE)
     matrix = metrics.get_confusion_matrix_from_one_hot(predictions,
                                                        test_labels)
-    metrics.display_confusion(matrix)
 
+    metrics.display_train_accuracy(history)
+    metrics.display_loss(history)
+    metrics.display_test_accuracy(predictions, test_labels)
+    metrics.display_confusion(matrix)
     model.save(args.export or args.model_filepath)
 
 

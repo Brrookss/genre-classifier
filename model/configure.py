@@ -1,7 +1,7 @@
 """Builds and compiles a neural network model.
 
 Example:
-    python configure.py [-h] [-s] dataset_filepath export
+    python configure.py [-h] dataset_filepath export
 """
 
 import argparse

@@ -237,8 +237,8 @@ def main():
     label_to_integer_mapping = integer_encode_mapping(unique_labels)
 
     with multiprocessing.Pool() as p:
-        dataset_inputs = []
-        dataset_labels = []
+        inputs = []
+        labels = []
 
         for preprocessed_track, filepath in p.imap(load_and_preprocess_track,
                                                    filepaths, chunksize=64):
@@ -255,9 +255,9 @@ def main():
                                                        genre_one_hot)
             del preprocessed_track
 
-            dataset_inputs.extend(segmented_track)
-            dataset_labels.extend(segmented_genre)
-    np.savez(args.outfile, inputs=dataset_inputs, labels=dataset_labels)
+            inputs.extend(segmented_track)
+            labels.extend(segmented_genre)
+    np.savez(args.outfile, inputs=inputs, labels=labels)
 
 
 if __name__ == "__main__":

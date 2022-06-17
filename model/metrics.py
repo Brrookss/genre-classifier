@@ -3,12 +3,38 @@
 from typing import Sequence
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sn
 import tensorflow as tf
 
 
-def display_accuracy(history: tf.keras.callbacks.History) -> None:
+def display_test_accuracy(
+    predictions: Sequence[Sequence[int]],
+    labels: Sequence[Sequence[int]]
+) -> None:
+    """Displays a fraction corresponding to model accuracy during testing.
+
+    :param predictions: sequence of one-hot encoded predictions
+    :param labels: sequence of one-hot encoded labels
+    :return: None
+    """
+    predicted = []
+    actual = []
+
+    for prediction_one_hot, label_one_hot in zip(predictions, labels):
+        prediction = np.argmax(prediction_one_hot)
+        label = np.argmax(label_one_hot)
+
+        predicted.append(prediction)
+        actual.append(label)
+
+    correct = np.where(np.array(predicted) == np.array(actual))[0]
+    accuracy = len(correct) / len(predicted)
+    print(f"test_accuracy: {accuracy:.4f}")
+
+
+def display_train_accuracy(history: tf.keras.callbacks.History) -> None:
     """Displays a plot corresponding to model accuracy during training.
 
     :param history: object returned by model after training
@@ -38,8 +64,8 @@ def display_confusion(matrix: Sequence[Sequence[int]]) -> None:
     sn.heatmap(df, annot=True, fmt="d")
 
     ax.set_title("Confusion Matrix")
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
+    ax.set_xlabel("Predicted Class")
+    ax.set_ylabel("Actual Class")
     plt.show()
 
 
@@ -74,9 +100,9 @@ def get_confusion_matrix_from_one_hot(
     predicted = []
     actual = []
 
-    for one_hot_prediction, one_hot_label in zip(predictions, labels):
-        prediction = tf.math.argmax(one_hot_prediction)
-        label = tf.math.argmax(one_hot_label)
+    for prediction_one_hot, label_one_hot in zip(predictions, labels):
+        prediction = np.argmax(prediction_one_hot)
+        label = np.argmax(label_one_hot)
 
         predicted.append(prediction)
         actual.append(label)
