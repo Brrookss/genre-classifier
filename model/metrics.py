@@ -22,9 +22,9 @@ def display_test_accuracy(
     predicted = []
     actual = []
 
-    for one_hot_prediction, one_hot_label in zip(predictions, labels):
-        prediction = np.argmax(one_hot_prediction)
-        label = np.argmax(one_hot_label)
+    for prediction_one_hot, label_one_hot in zip(predictions, labels):
+        prediction = np.argmax(prediction_one_hot)
+        label = np.argmax(label_one_hot)
 
         predicted.append(prediction)
         actual.append(label)
@@ -100,9 +100,9 @@ def get_confusion_matrix_from_one_hot(
     predicted = []
     actual = []
 
-    for one_hot_prediction, one_hot_label in zip(predictions, labels):
-        prediction = np.argmax(one_hot_prediction)
-        label = np.argmax(one_hot_label)
+    for prediction_one_hot, label_one_hot in zip(predictions, labels):
+        prediction = np.argmax(prediction_one_hot)
+        label = np.argmax(label_one_hot)
 
         predicted.append(prediction)
         actual.append(label)
