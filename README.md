@@ -3,11 +3,11 @@
 ## Description
 
 This is a machine learning project with the goal of creating a neural network
-model capable of predicting the genre of an audio track.
+capable of predicting the genre of an audio track.
 
 At a high-level, this is split into three steps:
 1. Creating a trainable dataset using feature engineering
-2. Configuring the neural network model
+2. Configuring the model
 3. Training the model
 
 This project is an end-to-end implementation; each of the three steps can be
