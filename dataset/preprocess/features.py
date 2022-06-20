@@ -1,10 +1,12 @@
 """Contains functionality for input feature engineering."""
 
+from typing import Any, Sequence
+
 import librosa
 import numpy as np
 
 
-def audio_to_image_representation(input: np.ndarray) -> np.ndarray:
+def audio_to_image_representation(input: Sequence[Any]) -> np.ndarray:
     """Converts input in the form of audio data to image representation.
 
     Input is expected to be representative of audio data in the
