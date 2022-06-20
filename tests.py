@@ -4,7 +4,6 @@ import unittest
 
 from dataset.preprocess.encode import integer_encode_mapping
 from dataset.preprocess.encode import is_sorted
-from dataset.preprocess.features import audio_to_image_representation
 
 
 class TestDatasetPreprocess(unittest.TestCase):
@@ -33,11 +32,6 @@ class TestDatasetPreprocess(unittest.TestCase):
     def testIsSorted_InputDuplicateSorted(self):
         input = [0, 0, 1, 2, 3, 4, 5]
         self.assertTrue(is_sorted(input))
-
-    def testAudioToImageRepresentation_CorrectShape(self):
-        input = [[0], [0]]
-        expected = (1, 2, 1)
-        self.assertEqual(audio_to_image_representation(input).shape, expected)
 
 
 if __name__ == "__main__":
