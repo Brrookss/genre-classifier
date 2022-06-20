@@ -42,41 +42,40 @@ genres.
 
 1. Download (and extract) the FMA dataset and per track metadata file
 referenced above
-2. Clone repository
-3. Activate virtual environment
-4. Install dependencies using requirements.txt
+2. Activate virtual environment
+3. Install package dependencies using requirements.txt
 
 ### Executing program
 
 1. Create trainable dataset to be saved as *outfile* using the directory
 *tracks_filepath* containing the FMA dataset and the per track metadata saved
-at *metadata_filepath*
+at *metadata_filepath*:
 
 ```python dataset/create.py [-h] tracks_filepath metadata_filepath outfile```
 
 2. Configure the model to be saved as *export* to the trainable dataset at
-*dataset_filepath*
+*dataset_filepath*:
 
 ```python model/configure.py [-h] dataset_filepath export```
 
 3. Train the model saved at *model_filepath* using the trainable dataset at
 *dataset_filepath*. By default, the model will be overwritten by the trained
 version; to keep the untrained model, invoke the optional ```-e``` or
-```--export``` argument followed by the filepath to the save location
+```--export``` argument followed by the filepath to the save location:
 
 ```python model/train.py [-h] [-e EXPORT] model_filepath dataset_filepath```
 
 ## Help
 
-Invoke the optional ```-h``` or ```--help``` argument in the previously
-mentioned files to display help messages regarding usage.
+Invoke the optional ```-h``` or ```--help``` argument in the aforementioned
+files to display help messages regarding usage.
 
 ## Notes
 
-Due to the size of the FMA dataset, creating the trainable dataset can take
+- Due to the size of the FMA dataset, creating the trainable dataset can take
 some time. As a reference, expect 15 to 20 minutes for the small variant.
 
-Downloading the dataset will result in warnings being displayed regarding
+- Downloading the dataset will result in warnings being displayed regarding
 a PySoundFile failure. This is due to a dependency not directly supporting
 MP3-encoded files but does not affect program functionality.
 
